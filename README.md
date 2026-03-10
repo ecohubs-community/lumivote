@@ -1,6 +1,10 @@
-# sv
+Copyright (c) 2026 Stefan Lessle
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Lumivote is licensed under the GNU Affero General Public License v3.0.
+See the LICENSE file for details.
+
+# sv-lumivote
+A Svelte project for the Lumivote community governance platform.
 
 ## Creating a project
 
