@@ -1,6 +1,6 @@
 # Community Governance Platform — REST API Specification
 
-## 1. Purpose of This Document
+# 1. Purpose of This Document
 
 This document defines the **REST API for the Community Governance Platform MVP**.
 
@@ -47,22 +47,26 @@ All responses must follow this structure.
 
 ### Success
 
+```json
 {
-“success”: true,
-“data”: { … }
+  “success”: true,
+  “data”: { … }
 }
+```
 
 ---
 
 ### Error
 
+```json
 {
-“success”: false,
-“error”: {
-“code”: “ERROR_CODE”,
-“message”: “Human readable description”
+  “success”: false,
+  “error”: {
+    “code”: “ERROR_CODE”,
+    “message”: “Human readable description”
+  }
 }
-}
+```
 
 ---
 
@@ -100,13 +104,15 @@ Endpoints returning lists must support pagination.
 
 ### Response Example
 
+```json
 {
-“success”: true,
-“data”: {
-“items”: […],
-“next_cursor”: “abcdef”
+  “success”: true,
+  “data”: {
+    “items”: [],
+    “next_cursor”: “abcdef”
+  }
 }
-}
+```
 
 ---
 
@@ -122,13 +128,47 @@ Required.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“id”: “uuid”,
-“wallet_address”: “0x123…”
+  “success”: true,
+  “data”: {
+    “id”: “uuid”,
+    “wallet_address”: “0x123…”,
+    “display_name”: “Alice”,
+    “avatar_url”: null
+  }
 }
+```
+
+---
+
+## PATCH /api/me
+
+Update current user profile.
+
+### Authentication
+
+Required.
+
+### Request
+
+```json
+{
+  “display_name”: “Alice”
 }
+```
+
+### Response
+
+```json
+{
+  “success”: true,
+  “data”: {
+    “id”: “uuid”,
+    “display_name”: “Alice”
+  }
+}
+```
 
 ---
 
@@ -144,44 +184,85 @@ Required.
 
 ### Request
 
+```json
 {
-“name”: “Eco Village Governance”,
-“slug”: “eco-village”,
-“description”: “Governance for our community”,
-“visibility”: “community”
+  “name”: “Eco Village Governance”,
+  “slug”: “eco-village”,
+  “description”: “Governance for our community”,
+  “visibility”: “community”
 }
+```
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“id”: “uuid”,
-“name”: “Eco Village Governance”,
-“slug”: “eco-village”
+  “success”: true,
+  “data”: {
+    “id”: “uuid”,
+    “name”: “Eco Village Governance”,
+    “slug”: “eco-village”
+  }
 }
-}
+```
 
 ---
 
 ## GET /api/communities
 
-Returns list of communities.
+Returns list of communities (authenticated user's communities).
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“items”: [
+  “success”: true,
+  “data”: {
+    “items”: [
+      {
+        “id”: “uuid”,
+        “name”: “Eco Village Governance”,
+        “slug”: “eco-village”
+      }
+    ]
+  }
+}
+```
+
+---
+
+## GET /api/communities/public
+
+Returns public communities for the landing page discovery sections. No authentication required.
+
+### Query Parameters
+
+```
+sort=newest       → ordered by created_at descending (default)
+sort=most_active  → ordered by total vote count descending
+limit=6           → max results (default: 6)
+```
+
+### Response
+
+```json
 {
-“id”: “uuid”,
-“name”: “Eco Village Governance”,
-“slug”: “eco-village”
+  “success”: true,
+  “data”: {
+    “items”: [
+      {
+        “id”: “uuid”,
+        “name”: “Eco Village Governance”,
+        “slug”: “eco-village”,
+        “description”: “…”,
+        “member_count”: 32,
+        “vote_count”: 148,
+        “created_at”: “2026-01-01T10:00:00Z”
+      }
+    ]
+  }
 }
-]
-}
-}
+```
 
 ---
 
@@ -191,16 +272,19 @@ Returns community details.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“id”: “uuid”,
-“name”: “Eco Village Governance”,
-“slug”: “eco-village”,
-“description”: “…”,
-“visibility”: “community”
+  “success”: true,
+  “data”: {
+    “id”: “uuid”,
+    “name”: “Eco Village Governance”,
+    “slug”: “eco-village”,
+    “description”: “…”,
+    “visibility”: “community”,
+    “verified”: false
+  }
 }
-}
+```
 
 ---
 
@@ -216,17 +300,19 @@ Required for community visibility.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“items”: [
-{
-“user_id”: “uuid”,
-“role”: “member”
+  “success”: true,
+  “data”: {
+    “items”: [
+      {
+        “user_id”: “uuid”,
+        “role”: “member”
+      }
+    ]
+  }
 }
-]
-}
-}
+```
 
 ---
 
@@ -245,16 +331,20 @@ Admin required.
 
 ### Request
 
+```json
 {
-“user_id”: “uuid”,
-“role”: “member”
+  “user_id”: “uuid”,
+  “role”: “member”
 }
+```
 
 ### Response
 
+```json
 {
-“success”: true
+  “success”: true
 }
+```
 
 ---
 
@@ -270,12 +360,14 @@ Admin required.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“invite_url”: “https://app/join/abcdef”
+  “success”: true,
+  “data”: {
+    “invite_url”: “https://app/join/abcdef”
+  }
 }
-}
+```
 
 ---
 
@@ -289,9 +381,11 @@ Required.
 
 ### Response
 
+```json
 {
-“success”: true
+  “success”: true
 }
+```
 
 ---
 
@@ -307,28 +401,87 @@ Community member required.
 
 ### Request
 
+```json
 {
-“community_id”: “uuid”,
-“title”: “Install Solar Panels”,
-“body”: “Proposal to install solar panels”,
-“choices”: [
-“Yes”,
-“No”
-],
-“start_time”: “2026-03-01T00:00:00Z”,
-“end_time”: “2026-03-07T00:00:00Z”,
-“visibility”: “community”,
-“strategy_id”: “onePersonOneVote”
+  “community_id”: “uuid”,
+  “title”: “Install Solar Panels”,
+  “body”: “Proposal to install solar panels”,
+  “choices”: [“Yes”, “No”],
+  “start_time”: “2026-03-01T00:00:00Z”,
+  “end_time”: “2026-03-07T00:00:00Z”,
+  “visibility”: “community”,
+  “strategy_id”: “onePersonOneVote”
 }
+```
+
+The `choices` array is **required** and must contain at least 2 items. Each choice is a string label. The server creates `proposal_choices` records with sequential `position` values.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“proposal_id”: “uuid”
+  “success”: true,
+  “data”: {
+    “proposal_id”: “uuid”
+  }
 }
+```
+
+---
+
+## PATCH /api/proposals/:id
+
+Update a proposal.
+
+### Authentication
+
+Required. Must be the proposal creator or a community admin.
+
+### Constraints
+
+Only proposals with status `draft` can be edited. Attempting to update an `active` or `closed` proposal returns an error.
+
+### Request
+
+All fields are optional. Only provided fields are updated.
+
+```json
+{
+  "title": "Updated Title",
+  "body": "Updated description",
+  "choices": ["Option A", "Option B", "Option C"],
+  "start_time": "2026-03-05T00:00:00Z",
+  "end_time": "2026-03-12T00:00:00Z",
+  "visibility": "public"
 }
+```
+
+When `choices` is provided, **all existing choices are replaced** with the new list. Minimum 2 choices required.
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "title": "Updated Title",
+    "status": "draft"
+  }
+}
+```
+
+### Error (if not draft)
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "PROPOSAL_NOT_EDITABLE",
+    "message": "Only draft proposals can be edited"
+  }
+}
+```
 
 ---
 
@@ -342,48 +495,54 @@ status=active|closed
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“items”: [
-{
-“id”: “uuid”,
-“title”: “Install Solar Panels”,
-“status”: “active”,
-“start_time”: “…”,
-“end_time”: “…”
+  “success”: true,
+  “data”: {
+    “items”: [
+      {
+        “id”: “uuid”,
+        “title”: “Install Solar Panels”,
+        “status”: “active”,
+        “start_time”: “…”,
+        “end_time”: “…”
+      }
+    ]
+  }
 }
-]
-}
-}
+```
 
 ---
 
 ## GET /api/proposals/:id
 
-Returns full proposal details.
+Returns full proposal details including voting choices.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“id”: “uuid”,
-“title”: “Install Solar Panels”,
-“body”: “…”,
-“status”: “active”,
-“choices”: [
-{
-“id”: “uuid”,
-“label”: “Yes”
-},
-{
-“id”: “uuid”,
-“label”: “No”
+  “success”: true,
+  “data”: {
+    “id”: “uuid”,
+    “title”: “Install Solar Panels”,
+    “body”: “…”,
+    “status”: “active”,
+    “choices”: [
+      {
+        “id”: “uuid”,
+        “label”: “Yes”,
+        “position”: 0
+      },
+      {
+        “id”: “uuid”,
+        “label”: “No”,
+        “position”: 1
+      }
+    ]
+  }
 }
-]
-}
-}
+```
 
 ---
 
@@ -399,11 +558,13 @@ Required.
 
 ### Request
 
+```json
 {
-“proposal_id”: “uuid”,
-“choice_id”: “uuid”,
-“signature”: “wallet_signature”
+  “proposal_id”: “uuid”,
+  “choice_id”: “uuid”,
+  “signature”: “wallet_signature”
 }
+```
 
 ### Behavior
 
@@ -418,9 +579,11 @@ Server must:
 
 ### Response
 
+```json
 {
-“success”: true
+  “success”: true
 }
+```
 
 ---
 
@@ -432,25 +595,27 @@ Returns voting results.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“proposal_id”: “uuid”,
-“total_votes”: 42,
-“results”: [
-{
-“choice_id”: “uuid”,
-“label”: “Yes”,
-“votes”: 30
-},
-{
-“choice_id”: “uuid”,
-“label”: “No”,
-“votes”: 12
+  “success”: true,
+  “data”: {
+    “proposal_id”: “uuid”,
+    “total_votes”: 42,
+    “results”: [
+      {
+        “choice_id”: “uuid”,
+        “label”: “Yes”,
+        “votes”: 30
+      },
+      {
+        “choice_id”: “uuid”,
+        “label”: “No”,
+        “votes”: 12
+      }
+    ]
+  }
 }
-]
-}
-}
+```
 
 ---
 
@@ -466,20 +631,30 @@ Admin required.
 
 ### Request
 
+```json
 {
-“url”: “https://example.com/webhook”,
-“events”: [
-“proposal.created”,
-“vote.cast”,
-“proposal.closed”
-]
+  “url”: “https://example.com/webhook”,
+  “events”: [
+    “proposal.created”,
+    “vote.cast”,
+    “proposal.closed”
+  ]
 }
+```
+
+A `secret` is auto-generated by the server and returned in the response. It is used to sign webhook payloads for verification.
 
 ### Response
 
+```json
 {
-“success”: true
+  “success”: true,
+  “data”: {
+    “id”: “uuid”,
+    “secret”: “whsec_…”
+  }
 }
+```
 
 ---
 
@@ -489,21 +664,98 @@ List community webhooks.
 
 ### Response
 
+```json
 {
-“success”: true,
-“data”: {
-“items”: [
-{
-“id”: “uuid”,
-“url”: “https://example.com/webhook”
+  “success”: true,
+  “data”: {
+    “items”: [
+      {
+        “id”: “uuid”,
+        “url”: “https://example.com/webhook”,
+        “events”: [“proposal.created”, “vote.cast”],
+        “active”: true
+      }
+    ]
+  }
 }
-]
-}
-}
+```
 
 ---
 
-# 13. Event Streaming (Future)
+# 13. Community Management
+
+## PATCH /api/communities/:id
+
+Update community settings.
+
+### Authentication
+
+Admin required.
+
+### Request
+
+```json
+{
+  "name": "Updated Name",
+  "description": "Updated description",
+  "visibility": "public"
+}
+```
+
+All fields are optional. Only provided fields are updated.
+
+### Response
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "uuid",
+    "name": "Updated Name",
+    "slug": "eco-village"
+  }
+}
+```
+
+---
+
+## DELETE /api/communities/:id/members/:userId
+
+Remove a member from the community.
+
+### Authentication
+
+Admin required. Admins cannot remove themselves.
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+## POST /api/communities/:id/leave
+
+Leave a community.
+
+### Authentication
+
+Required. Admins cannot leave if they are the only admin.
+
+### Response
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+# 14. Event Streaming (Future)
 
 Future versions may include:
 
@@ -523,23 +775,30 @@ Not required for MVP.
 
 Common error codes:
 
-- UNAUTHORIZED
-- FORBIDDEN
-- NOT_FOUND
-- INVALID_REQUEST
-- ALREADY_VOTED
-- PROPOSAL_NOT_ACTIVE
-- MEMBERSHIP_REQUIRED
+```
+UNAUTHORIZED
+FORBIDDEN
+NOT_FOUND
+INVALID_REQUEST
+ALREADY_VOTED
+PROPOSAL_NOT_ACTIVE
+PROPOSAL_NOT_EDITABLE
+MEMBERSHIP_REQUIRED
+COMMUNITY_LIMIT_REACHED
+INVALID_CHOICES
+```
 
 Example:
 
+```json
 {
-“success”: false,
-“error”: {
-“code”: “ALREADY_VOTED”,
-“message”: “User has already voted on this proposal”
+  “success”: false,
+  “error”: {
+    “code”: “ALREADY_VOTED”,
+    “message”: “User has already voted on this proposal”
+  }
 }
-}
+```
 
 ---
 
@@ -547,14 +806,35 @@ Example:
 
 Basic rate limiting should apply.
 
-Suggested limits:
+### Standard rate limits (verified communities):
 
+```
 60 requests per minute per IP
+```
+
+### Reduced rate limits (unverified communities):
+
+```
+30 requests per minute per IP
+```
 
 Stricter limits for:
 
 - vote casting
 - proposal creation
+
+### Verified Community Limits
+
+Unverified communities are subject to:
+
+```
+maximum 20 proposals
+maximum 10 members
+```
+
+Verified communities have no such limits. The API must enforce these limits and return an appropriate error when exceeded.
+
+Error code: `COMMUNITY_LIMIT_REACHED`
 
 ---
 

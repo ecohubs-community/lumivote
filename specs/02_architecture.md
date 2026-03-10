@@ -1,6 +1,6 @@
 # Community Governance Platform — System Architecture
 
-## 1. Purpose of This Document
+# 1. Purpose of This Document
 
 This document defines the **system architecture** of the Community Governance Platform.
 
@@ -33,11 +33,12 @@ A modular monolith allows:
 
 The system consists of:
 
+```
 Frontend (SvelteKit)
 │
 ▼ Backend API (SvelteKit server routes)
 │
-▼Core Governance Engine
+▼ Core Governance Engine
 │
 ├── Strategies
 ├── Plugins
@@ -46,6 +47,7 @@ Frontend (SvelteKit)
 └── Integrations
 │
 ▼ Database (SQLite via Drizzle ORM)
+```
 
 ---
 
@@ -219,21 +221,24 @@ This ensures:
 # 5. Project Folder Structure
 
 Recommended project structure:
+
+```
 /src
-/lib
-/server
-/auth
-/db
-/events
-/strategies
-/plugins
-/executions
-/integrations
-/services
-/routes
-/components
-/stores
-/utils
+  /lib
+    /server
+      /auth
+      /db
+      /events
+      /strategies
+      /plugins
+      /executions
+      /integrations
+      /services
+  /routes
+  /components
+  /stores
+  /utils
+```
 
 ---
 
@@ -356,12 +361,20 @@ Services coordinate:
 
 The governance engine consists of several interacting systems.
 
-Proposal Lifecycle │
-▼ Voting Strategy │
-▼ Vote Storage │
-▼ Result Calculation │
-▼ Execution Hooks │
+```
+Proposal Lifecycle
+│
+▼ Voting Strategy
+│
+▼ Vote Storage
+│
+▼ Result Calculation
+│
+▼ Execution Hooks
+│
 ▼ Events / Webhooks
+```
+
 ---
 
 # 7. Proposal Lifecycle
@@ -374,21 +387,23 @@ A proposal passes through several states.
 
 ## Lifecycle flow:
 
-proposal created
+```
+proposal created (draft)
 ↓
-proposal scheduled
+proposal scheduled (start_time reached → active)
 ↓
 voting opens
 ↓
 votes collected
 ↓
-voting ends
+voting ends (end_time reached → closed)
 ↓
 results calculated
 ↓
 execution hooks triggered
 ↓
 events emitted
+```
 
 ---
 

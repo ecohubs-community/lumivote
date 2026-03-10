@@ -1,6 +1,6 @@
 # Community Governance Platform — Product Overview
 
-## 1. Purpose of This Document
+# 1. Purpose of This Document
 
 This document defines the **product vision, goals, scope, and guiding principles** of the Community Governance Platform.
 
@@ -246,10 +246,13 @@ Community members can create proposals.
 A proposal includes:
 
 - title
-- description
-- voting options
+- description (supports markdown)
+- **voting options** (user-defined choices, e.g., "Yes" / "No" / "Abstain", or custom options)
 - start time
 - end time
+- visibility (public or community)
+
+Each proposal must have **at least two voting options**. Options are defined by the proposal creator at creation time, both via the UI and the API.
 
 Proposals belong to a specific community.
 
@@ -328,6 +331,40 @@ This allows external automation such as:
 - community bots
 - dashboards
 - analytics tools
+
+---
+
+### Verified Communities
+
+Communities can be **verified** by platform administrators.
+
+**Unverified communities** have the following limits:
+
+- maximum **20 proposals**
+- maximum **10 members**
+- lower API rate limits
+
+**Verified communities** have:
+
+- unlimited proposals
+- unlimited members
+- standard API rate limits
+
+This encourages legitimate community usage while preventing platform abuse.
+
+Verification is a manual process performed by platform administrators.
+
+---
+
+### Proposal Lifecycle
+
+Proposals follow an automated lifecycle:
+
+1. **Draft** — proposal is created but voting has not started
+2. **Active** — `start_time` has been reached, members can vote
+3. **Closed** — `end_time` has been reached, voting is finished, results are final
+
+The system must automatically transition proposals between states based on their `start_time` and `end_time`. This can be implemented via a scheduled job or on-access checks.
 
 ---
 

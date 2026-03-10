@@ -1,7 +1,6 @@
-
 # Community Governance Platform — UI / UX Design Specification
 
-## 1. Purpose
+# 1. Purpose
 
 This document defines the **user interface and user experience design** for the Community Governance Platform.
 
@@ -161,7 +160,7 @@ The MVP includes the following pages.
 ```
 Landing page
 Community proposals page
-Proposal detail page
+Proposal detail page (with inline edit mode for drafts)
 Create proposal page
 Community settings page
 Profile page
@@ -173,21 +172,43 @@ Profile page
 
 Purpose:
 
-Introduce the platform and allow login.
+Introduce the platform and allow login. For logged-out users it is the entry point; for logged-in users it shows discovery content.
 
 Sections:
 
 ```
 headline
 short description
-connect wallet button
+connect wallet button (if not logged in)
 ```
 
-Optional:
+### Public Community Discovery
+
+Below the hero, display two sections showing **public communities**:
+
+**New Communities**
+
+Ordered by `created_at` descending (newest first).
 
 ```
-list of public communities
+[Community Name]
+Created 2 days ago • 4 members
 ```
+
+**Most Active Communities**
+
+Ordered by total vote count descending. Shows engagement at a glance.
+
+```
+[Community Name]
+32 members • 148 votes
+```
+
+Each community card links to its proposals page.
+
+Both sections show a maximum of 6 communities each. Unverified communities with 0 members or 0 proposals are excluded from the "Most Active" section.
+
+These sections are visible to all users (logged in or not) since they only show public communities.
 
 ---
 
@@ -209,6 +230,7 @@ End date
 Status badges:
 
 ```
+draft
 active
 closed
 upcoming
@@ -252,9 +274,27 @@ Metadata includes:
 
 ```
 author
+status badge
 start time
 end time
 ```
+
+### Draft State (editable by creator/admin)
+
+When the proposal is in `draft` status, the proposal creator and community admins see an **Edit** button. Clicking it switches the page to edit mode (or navigates to the edit form).
+
+In edit mode, all fields are editable:
+
+```
+title
+description
+voting options (add / remove / reorder)
+start time
+end time
+visibility
+```
+
+A **Save** button persists changes. A **Cancel** button discards them. Changes are not allowed once the proposal transitions to `active`.
 
 ---
 
@@ -358,7 +398,7 @@ Display:
 
 ```
 wallet address
-username
+display name
 joined communities
 recent votes
 ```

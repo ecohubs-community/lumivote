@@ -1,6 +1,6 @@
 # Community Governance Platform — Authentication & Identity Specification
 
-## 1. Purpose
+# 1. Purpose
 
 This document defines the authentication and identity architecture for the Community Governance Platform.
 
@@ -22,7 +22,7 @@ The platform uses a **wallet-first identity model**.
 A user is primarily identified by:
 
 ```
-walle_address
+wallet_address
 ```
 
 This matches the governance patterns used in systems such as Snapshot-style voting.
@@ -54,7 +54,7 @@ Fields:
 ```
 id
 wallet_address
-username
+display_name
 avatar_url
 created_at
 ```
@@ -62,7 +62,8 @@ created_at
 Rules:
 
 - wallet_address must be unique
-- username is optional
+- display_name is optional
+- avatar_url is optional
 
 Users may join multiple communities.
 
@@ -317,12 +318,17 @@ Basic permission rules:
 member
 → vote
 → view proposals
+→ create proposals
 
 admin
-→ create proposals
+→ all member permissions
 → manage members
 → configure community
+→ manage webhooks
+→ create/manage invite links
 ```
+
+Note: Proposal creation is allowed for all community members by default. Communities may restrict proposal creation to admins in the future via community settings.
 
 Permissions must be checked server-side.
 

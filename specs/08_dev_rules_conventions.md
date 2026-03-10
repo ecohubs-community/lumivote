@@ -1,6 +1,6 @@
 # Community Governance Platform — Development Rules & Conventions
 
-## 1. Purpose
+# 1. Purpose
 
 This document defines **coding standards, architectural conventions, and development rules** for the Community Governance Platform.
 
@@ -44,8 +44,10 @@ Drizzle ORM
 Authentication:
 
 ```
-Wallet login (SIWE style)
-Session cookies
+better-auth framework
+Wallet login (SIWE style, via better-auth plugin)
+Email/password (enabled as baseline)
+Session cookies (httpOnly, secure)
 ```
 
 Hosting:

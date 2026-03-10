@@ -1,6 +1,6 @@
 # Community Governance Platform — Events, Plugins, and Execution Hooks Specification
 
-## 1. Purpose of This Document
+# 1. Purpose of This Document
 
 This document defines the **event system, plugin architecture, and execution hook mechanisms** for the Community Governance Platform.
 

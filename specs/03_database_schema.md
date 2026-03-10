@@ -1,6 +1,6 @@
 # Community Governance Platform — Database Schema Specification
 
-## 1. Purpose of This Document
+# 1. Purpose of This Document
 
 This document defines the **complete database schema for the MVP** of the Community Governance Platform.
 
@@ -108,6 +108,8 @@ Authentication is primarily **wallet-based**.
 |------|------|-------------|
 | id | uuid (string) | Primary key |
 | wallet_address | string | Ethereum wallet address |
+| display_name | string (nullable) | Optional display name |
+| avatar_url | string (nullable) | Optional avatar URL |
 | created_at | timestamp | Account creation time |
 
 ### Constraints
@@ -160,8 +162,10 @@ Represents a governance space.
 | slug | string | URL-friendly identifier |
 | description | text | Community description |
 | visibility | string | public or community |
+| verified | boolean | Whether community is verified by platform admins (default: false) |
 | created_by | uuid | creator user ID |
 | created_at | timestamp | creation time |
+| updated_at | timestamp | last update time |
 
 ### Constraints
 
@@ -211,13 +215,17 @@ Allows users to join communities via invite links.
 |------|------|-------------|
 | id | uuid | Primary key |
 | community_id | uuid | referenced community |
+| created_by | uuid | user who created the invite |
 | token | string | invite token |
+| max_uses | integer (nullable) | Maximum number of uses (null = unlimited) |
+| uses | integer | Current number of uses (default: 0) |
 | expires_at | timestamp | expiration time |
 | created_at | timestamp | creation time |
 
 ### Constraints
 
 - FOREIGN KEY community_id → communities.id
+- FOREIGN KEY created_by → users.id
 
 ### Indexes
 
@@ -245,6 +253,7 @@ Represents governance proposals.
 | start_time | timestamp | voting start |
 | end_time | timestamp | voting end |
 | created_at | timestamp | creation time |
+| updated_at | timestamp | last update time |
 
 ### Constraints
 
@@ -327,7 +336,9 @@ Allows communities to subscribe to governance events.
 | id | uuid | Primary key |
 | community_id | uuid | referenced community |
 | url | string | webhook endpoint |
+| secret | string | shared secret for webhook signature verification |
 | events | text/json | subscribed events |
+| active | boolean | Whether the webhook is active (default: true) |
 | created_at | timestamp | creation time |
 
 ### Constraints
@@ -386,36 +397,44 @@ proposals
 
 ## Example Community
 
+```json
 {
-“id”: “uuid”,
-“name”: “Eco Village Governance”,
-“slug”: “eco-village”,
-“visibility”: “community”,
-“created_at”: “2026-01-01T10:00:00Z”
+  “id”: “uuid”,
+  “name”: “Eco Village Governance”,
+  “slug”: “eco-village”,
+  “visibility”: “community”,
+  “verified”: false,
+  “created_at”: “2026-01-01T10:00:00Z”
 }
+```
 
 ---
 
 ## Example Proposal
 
+```json
 {
-“title”: “Install Solar Panels”,
-“body”: “Proposal to install solar panels on the community center roof.”,
-“strategy_id”: “onePersonOneVote”,
-“start_time”: “2026-02-01T00:00:00Z”,
-“end_time”: “2026-02-07T00:00:00Z”
+  “title”: “Install Solar Panels”,
+  “body”: “Proposal to install solar panels on the community center roof.”,
+  “strategy_id”: “onePersonOneVote”,
+  “choices”: [“Yes”, “No”, “Abstain”],
+  “start_time”: “2026-02-01T00:00:00Z”,
+  “end_time”: “2026-02-07T00:00:00Z”
 }
+```
 
 ---
 
 ## Example Vote
 
+```json
 {
-“proposal_id”: “uuid”,
-“user_id”: “uuid”,
-“choice_id”: “uuid”,
-“voting_power”: 1
+  “proposal_id”: “uuid”,
+  “user_id”: “uuid”,
+  “choice_id”: “uuid”,
+  “voting_power”: 1
 }
+```
 
 ---
 
