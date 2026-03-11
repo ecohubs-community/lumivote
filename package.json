@@ -58,5 +58,8 @@
 	},
 	"dependencies": {
 		"better-sqlite3": "^12.6.2"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": ["better-sqlite3"]
 	}
 }
