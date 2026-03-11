@@ -1,0 +1,392 @@
+import { eq, and, desc, lt, or, count, sql } from 'drizzle-orm';
+import { db as defaultDb } from '$lib/server/db';
+import { community, communityMember, invite, user } from '$lib/server/db/schema';
+import { ServiceError, ErrorCode } from './errors';
+import {
+	type PaginationParams,
+	type PaginatedResult,
+	type Database,
+	encodeCursor,
+	decodeCursor,
+	clampLimit
+} from './types';
+
+// ─── Input types ─────────────────────────────────────────────────────────────
+
+export interface CreateInviteInput {
+	maxUses?: number;
+	expiresAt: Date | string;
+}
+
+// ─── Internal helpers ────────────────────────────────────────────────────────
+
+/**
+ * Look up a membership record. Returns the record or null.
+ */
+export async function getMember(
+	communityId: string,
+	userId: string,
+	db: Database = defaultDb
+) {
+	const [member] = await db
+		.select()
+		.from(communityMember)
+		.where(
+			and(eq(communityMember.communityId, communityId), eq(communityMember.userId, userId))
+		)
+		.limit(1);
+
+	return member ?? null;
+}
+
+/**
+ * Require that a user is a member of a community. Throws `MEMBERSHIP_REQUIRED` if not.
+ */
+export async function requireMember(
+	communityId: string,
+	userId: string,
+	db: Database = defaultDb
+) {
+	const member = await getMember(communityId, userId, db);
+	if (!member) {
+		throw new ServiceError(ErrorCode.MEMBERSHIP_REQUIRED, 'You must be a member of this community');
+	}
+	return member;
+}
+
+/**
+ * Require that a user is an admin of a community. Throws `FORBIDDEN` if not.
+ */
+export async function requireAdmin(
+	communityId: string,
+	userId: string,
+	db: Database = defaultDb
+) {
+	const member = await getMember(communityId, userId, db);
+	if (!member || member.role !== 'admin') {
+		throw new ServiceError(ErrorCode.FORBIDDEN, 'Admin role required');
+	}
+	return member;
+}
+
+// ─── Service functions ───────────────────────────────────────────────────────
+
+/**
+ * Admin adds a member to a community.
+ */
+export async function addMember(
+	adminUserId: string,
+	communityId: string,
+	targetUserId: string,
+	role: 'admin' | 'member' = 'member',
+	db: Database = defaultDb
+) {
+	await requireAdmin(communityId, adminUserId, db);
+
+	// Verify target user exists
+	const [targetUser] = await db
+		.select({ id: user.id })
+		.from(user)
+		.where(eq(user.id, targetUserId))
+		.limit(1);
+
+	if (!targetUser) {
+		throw new ServiceError(ErrorCode.NOT_FOUND, 'User not found');
+	}
+
+	// Check if already a member
+	const existing = await getMember(communityId, targetUserId, db);
+	if (existing) {
+		throw new ServiceError(ErrorCode.ALREADY_MEMBER, 'User is already a member of this community');
+	}
+
+	// Check unverified community member limit
+	await checkMemberLimit(communityId, db);
+
+	const [created] = await db
+		.insert(communityMember)
+		.values({
+			communityId,
+			userId: targetUserId,
+			role
+		})
+		.returning();
+
+	return created;
+}
+
+/**
+ * Admin removes a member from a community. Cannot remove self.
+ */
+export async function removeMember(
+	adminUserId: string,
+	communityId: string,
+	targetUserId: string,
+	db: Database = defaultDb
+) {
+	await requireAdmin(communityId, adminUserId, db);
+
+	if (adminUserId === targetUserId) {
+		throw new ServiceError(
+			ErrorCode.FORBIDDEN,
+			'Admins cannot remove themselves. Use the leave endpoint instead.'
+		);
+	}
+
+	const target = await getMember(communityId, targetUserId, db);
+	if (!target) {
+		throw new ServiceError(ErrorCode.NOT_FOUND, 'Member not found');
+	}
+
+	await db
+		.delete(communityMember)
+		.where(
+			and(
+				eq(communityMember.communityId, communityId),
+				eq(communityMember.userId, targetUserId)
+			)
+		);
+}
+
+/**
+ * User leaves a community voluntarily.
+ * Sole admins cannot leave — they must transfer admin role first.
+ */
+export async function leaveCommunity(
+	userId: string,
+	communityId: string,
+	db: Database = defaultDb
+) {
+	const member = await requireMember(communityId, userId, db);
+
+	// If admin, check they are not the sole admin
+	if (member.role === 'admin') {
+		const [{ adminCount }] = await db
+			.select({ adminCount: count() })
+			.from(communityMember)
+			.where(
+				and(
+					eq(communityMember.communityId, communityId),
+					eq(communityMember.role, 'admin')
+				)
+			);
+
+		if (adminCount <= 1) {
+			throw new ServiceError(
+				ErrorCode.SOLE_ADMIN,
+				'Cannot leave community as the sole admin. Transfer admin role first.'
+			);
+		}
+	}
+
+	await db
+		.delete(communityMember)
+		.where(
+			and(
+				eq(communityMember.communityId, communityId),
+				eq(communityMember.userId, userId)
+			)
+		);
+}
+
+/**
+ * List members of a community with user profile info.
+ */
+export async function listMembers(
+	communityId: string,
+	pagination: PaginationParams = {},
+	db: Database = defaultDb
+): Promise<
+	PaginatedResult<{
+		userId: string;
+		displayName: string | null;
+		avatarUrl: string | null;
+		role: string;
+		joinedAt: Date;
+	}>
+> {
+	const limit = clampLimit(pagination.limit);
+	const cursor = pagination.cursor ? decodeCursor(pagination.cursor) : null;
+
+	const conditions = [eq(communityMember.communityId, communityId)];
+
+	if (cursor) {
+		conditions.push(
+			or(
+				lt(communityMember.joinedAt, new Date(cursor.ts)),
+				and(
+					eq(communityMember.joinedAt, new Date(cursor.ts)),
+					lt(communityMember.id, cursor.id)
+				)
+			)!
+		);
+	}
+
+	const rows = await db
+		.select({
+			memberId: communityMember.id,
+			userId: communityMember.userId,
+			role: communityMember.role,
+			joinedAt: communityMember.joinedAt,
+			displayName: user.displayName,
+			avatarUrl: user.avatarUrl
+		})
+		.from(communityMember)
+		.innerJoin(user, eq(communityMember.userId, user.id))
+		.where(and(...conditions))
+		.orderBy(desc(communityMember.joinedAt), desc(communityMember.id))
+		.limit(limit + 1);
+
+	const hasMore = rows.length > limit;
+	const items = hasMore ? rows.slice(0, limit) : rows;
+
+	const nextCursor =
+		hasMore && items.length > 0
+			? encodeCursor(items[items.length - 1].joinedAt, items[items.length - 1].memberId)
+			: null;
+
+	return {
+		items: items.map((r) => ({
+			userId: r.userId,
+			displayName: r.displayName,
+			avatarUrl: r.avatarUrl,
+			role: r.role,
+			joinedAt: r.joinedAt
+		})),
+		nextCursor
+	};
+}
+
+// ─── Invites ─────────────────────────────────────────────────────────────────
+
+/**
+ * Admin creates an invite link for a community.
+ */
+export async function createInvite(
+	adminUserId: string,
+	communityId: string,
+	input: CreateInviteInput,
+	db: Database = defaultDb
+) {
+	await requireAdmin(communityId, adminUserId, db);
+
+	const expiresAt =
+		typeof input.expiresAt === 'string' ? new Date(input.expiresAt) : input.expiresAt;
+
+	if (isNaN(expiresAt.getTime())) {
+		throw new ServiceError(ErrorCode.INVALID_REQUEST, 'Invalid expiration date');
+	}
+	if (expiresAt.getTime() <= Date.now()) {
+		throw new ServiceError(ErrorCode.INVALID_REQUEST, 'Expiration date must be in the future');
+	}
+	if (input.maxUses !== undefined && input.maxUses !== null) {
+		if (!Number.isInteger(input.maxUses) || input.maxUses < 1) {
+			throw new ServiceError(ErrorCode.INVALID_REQUEST, 'maxUses must be a positive integer');
+		}
+	}
+
+	const [created] = await db
+		.insert(invite)
+		.values({
+			communityId,
+			createdBy: adminUserId,
+			maxUses: input.maxUses ?? null,
+			expiresAt
+		})
+		.returning();
+
+	return created;
+}
+
+/**
+ * Redeem an invite token to join a community.
+ */
+export async function redeemInvite(
+	userId: string,
+	token: string,
+	db: Database = defaultDb
+) {
+	// Find invite
+	const [found] = await db
+		.select()
+		.from(invite)
+		.where(eq(invite.token, token))
+		.limit(1);
+
+	if (!found) {
+		throw new ServiceError(ErrorCode.NOT_FOUND, 'Invite not found');
+	}
+
+	// Check expiry
+	if (found.expiresAt.getTime() <= Date.now()) {
+		throw new ServiceError(ErrorCode.INVITE_EXPIRED, 'This invite has expired');
+	}
+
+	// Check uses
+	if (found.maxUses !== null && found.uses >= found.maxUses) {
+		throw new ServiceError(ErrorCode.INVITE_EXHAUSTED, 'This invite has reached its usage limit');
+	}
+
+	// Check not already member
+	const existing = await getMember(found.communityId, userId, db);
+	if (existing) {
+		throw new ServiceError(ErrorCode.ALREADY_MEMBER, 'You are already a member of this community');
+	}
+
+	// Check unverified community member limit
+	await checkMemberLimit(found.communityId, db);
+
+	// Atomic: increment uses + add member
+	// Note: better-sqlite3 transactions are synchronous — no async/await inside
+	return db.transaction((tx) => {
+		tx
+			.update(invite)
+			.set({ uses: sql`${invite.uses} + 1` })
+			.where(eq(invite.id, found.id))
+			.run();
+
+		const newMember = tx
+			.insert(communityMember)
+			.values({
+				communityId: found.communityId,
+				userId,
+				role: 'member'
+			})
+			.returning()
+			.get();
+
+		return newMember;
+	});
+}
+
+// ─── Private helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Check that an unverified community has not reached its member limit (10).
+ * Verified communities have no limit.
+ */
+async function checkMemberLimit(communityId: string, db: Database = defaultDb) {
+	const [comm] = await db
+		.select({ verified: community.verified })
+		.from(community)
+		.where(eq(community.id, communityId))
+		.limit(1);
+
+	if (!comm) {
+		throw new ServiceError(ErrorCode.NOT_FOUND, 'Community not found');
+	}
+
+	if (!comm.verified) {
+		const [{ memberCount }] = await db
+			.select({ memberCount: count() })
+			.from(communityMember)
+			.where(eq(communityMember.communityId, communityId));
+
+		if (memberCount >= 10) {
+			throw new ServiceError(
+				ErrorCode.COMMUNITY_LIMIT_REACHED,
+				'Unverified communities are limited to 10 members'
+			);
+		}
+	}
+}
