@@ -7,6 +7,7 @@ import {
 	vote
 } from '$lib/server/db/schema';
 import { ServiceError, ErrorCode } from './errors';
+import { emit } from '../events';
 import {
 	type PaginationParams,
 	type PaginatedResult,
@@ -111,7 +112,7 @@ export async function createCommunity(
 
 	// Atomic: create community + add creator as admin
 	// Note: better-sqlite3 transactions are synchronous — no async/await inside
-	return db.transaction((tx) => {
+	const result = db.transaction((tx) => {
 		const created = tx
 			.insert(community)
 			.values({
@@ -132,6 +133,10 @@ export async function createCommunity(
 
 		return created;
 	});
+
+	emit('community.created', { communityId: result.id, createdBy: userId });
+
+	return result;
 }
 
 /**

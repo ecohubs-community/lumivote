@@ -2,6 +2,7 @@ import { eq, and, desc, lt, or, count, sql } from 'drizzle-orm';
 import { db as defaultDb } from '$lib/server/db';
 import { community, communityMember, invite, user } from '$lib/server/db/schema';
 import { ServiceError, ErrorCode } from './errors';
+import { emit } from '../events';
 import {
 	type PaginationParams,
 	type PaginatedResult,
@@ -111,6 +112,8 @@ export async function addMember(
 			role
 		})
 		.returning();
+
+	emit('member.joined', { communityId, userId: targetUserId });
 
 	return created;
 }
@@ -338,7 +341,7 @@ export async function redeemInvite(
 
 	// Atomic: increment uses + add member
 	// Note: better-sqlite3 transactions are synchronous — no async/await inside
-	return db.transaction((tx) => {
+	const result = db.transaction((tx) => {
 		tx
 			.update(invite)
 			.set({ uses: sql`${invite.uses} + 1` })
@@ -357,6 +360,10 @@ export async function redeemInvite(
 
 		return newMember;
 	});
+
+	emit('member.joined', { communityId: found.communityId, userId });
+
+	return result;
 }
 
 // ─── Private helpers ─────────────────────────────────────────────────────────

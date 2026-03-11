@@ -2,6 +2,7 @@ import { eq, and } from 'drizzle-orm';
 import { db as defaultDb } from '$lib/server/db';
 import { proposal, proposalChoice, vote } from '$lib/server/db/schema';
 import { ServiceError, ErrorCode } from './errors';
+import { emit } from '../events';
 import { requireMember } from './membership-service';
 import { transitionProposalStatus } from './proposal-service';
 import type { Database } from './types';
@@ -104,6 +105,13 @@ export async function castVote(
 			signature: input.signature ?? null
 		})
 		.returning();
+
+	emit('vote.cast', {
+		voteId: created.id,
+		proposalId: input.proposalId,
+		userId,
+		choiceId: input.choiceId
+	});
 
 	return created;
 }

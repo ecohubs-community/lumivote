@@ -8,6 +8,7 @@ import {
 	vote
 } from '$lib/server/db/schema';
 import { ServiceError, ErrorCode } from './errors';
+import { emit } from '../events';
 import { requireMember, requireAdmin } from './membership-service';
 import {
 	type PaginationParams,
@@ -133,6 +134,7 @@ export async function transitionProposalStatus(
 ): Promise<ProposalRecord> {
 	const now = Date.now();
 	let newStatus = p.status;
+	const originalStatus = p.status;
 
 	if (p.status === 'draft' && p.startTime.getTime() <= now) {
 		newStatus = 'active';
@@ -141,11 +143,24 @@ export async function transitionProposalStatus(
 		newStatus = 'closed';
 	}
 
-	if (newStatus !== p.status) {
+	if (newStatus !== originalStatus) {
 		await db
 			.update(proposal)
 			.set({ status: newStatus })
 			.where(eq(proposal.id, p.id));
+
+		// Emit events after successful DB write
+		// If draft→active (not skipping to closed), emit proposal.started
+		if (newStatus === 'active') {
+			emit('proposal.started', { proposalId: p.id, communityId: p.communityId });
+		}
+
+		// If transitioning to closed, emit proposal.closed with results
+		if (newStatus === 'closed') {
+			const results = await aggregateResults(p.id, db);
+			emit('proposal.closed', { proposalId: p.id, communityId: p.communityId, results });
+		}
+
 		return { ...p, status: newStatus };
 	}
 
@@ -230,7 +245,7 @@ export async function createProposal(
 
 	// Atomic: insert proposal + choices
 	// Note: better-sqlite3 transactions are synchronous — no async/await inside
-	return db.transaction((tx) => {
+	const result = db.transaction((tx) => {
 		const created = tx
 			.insert(proposal)
 			.values({
@@ -257,6 +272,14 @@ export async function createProposal(
 
 		return created;
 	});
+
+	emit('proposal.created', {
+		proposalId: result.id,
+		communityId: input.communityId,
+		createdBy: userId
+	});
+
+	return result;
 }
 
 /**
@@ -522,7 +545,19 @@ export async function getProposalResults(
 		await requireMember(found.communityId, userId, db);
 	}
 
-	// Aggregate votes per choice
+	return aggregateResults(proposalId, db);
+}
+
+// ─── Private helpers ─────────────────────────────────────────────────────────
+
+/**
+ * Aggregate vote results for a proposal (no access checks).
+ * Used by both `getProposalResults()` and event emission in `transitionProposalStatus()`.
+ */
+async function aggregateResults(
+	proposalId: string,
+	db: Database = defaultDb
+): Promise<ProposalResults> {
 	const results = await db
 		.select({
 			choiceId: proposalChoice.id,
@@ -550,8 +585,6 @@ export async function getProposalResults(
 		}))
 	};
 }
-
-// ─── Private helpers ─────────────────────────────────────────────────────────
 
 /**
  * Check that an unverified community has not reached its proposal limit (20).
