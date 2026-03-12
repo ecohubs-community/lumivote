@@ -115,3 +115,21 @@ export async function castVote(
 
 	return created;
 }
+
+/**
+ * Get a user's vote on a specific proposal, if any.
+ * Returns the vote record (including choiceId) or null.
+ */
+export async function getUserVote(
+	userId: string,
+	proposalId: string,
+	db: Database = defaultDb
+) {
+	const [found] = await db
+		.select()
+		.from(vote)
+		.where(and(eq(vote.proposalId, proposalId), eq(vote.userId, userId)))
+		.limit(1);
+
+	return found ?? null;
+}
