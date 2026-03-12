@@ -9,7 +9,6 @@ import { db } from '$lib/server/db';
 import * as authSchema from '$lib/server/db/auth.schema';
 
 export const auth = betterAuth({
-	baseURL: env.ORIGIN,
 	secret: env.BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, {
 		provider: 'sqlite',
@@ -43,7 +42,7 @@ export const auth = betterAuth({
 	},
 	plugins: [
 		siwe({
-			domain: new URL(env.ORIGIN).hostname,
+			domain: env.ORIGIN ? new URL(env.ORIGIN).hostname : 'localhost',
 			anonymous: true,
 			async getNonce() {
 				return crypto.randomUUID();

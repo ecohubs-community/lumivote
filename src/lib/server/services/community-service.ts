@@ -200,6 +200,49 @@ export async function updateCommunity(
 }
 
 /**
+ * Get a community by its ID.
+ * Same visibility rules as getCommunityBySlug.
+ */
+export async function getCommunityById(
+	communityId: string,
+	userId?: string,
+	db: Database = defaultDb
+) {
+	const [found] = await db
+		.select()
+		.from(community)
+		.where(eq(community.id, communityId))
+		.limit(1);
+
+	if (!found) {
+		throw new ServiceError(ErrorCode.NOT_FOUND, 'Community not found');
+	}
+
+	// Check visibility
+	if (found.visibility === 'community') {
+		if (!userId) {
+			throw new ServiceError(ErrorCode.FORBIDDEN, 'Authentication required to view this community');
+		}
+		const [member] = await db
+			.select({ id: communityMember.id })
+			.from(communityMember)
+			.where(
+				and(
+					eq(communityMember.communityId, found.id),
+					eq(communityMember.userId, userId)
+				)
+			)
+			.limit(1);
+
+		if (!member) {
+			throw new ServiceError(ErrorCode.FORBIDDEN, 'You must be a member to view this community');
+		}
+	}
+
+	return found;
+}
+
+/**
  * Get a community by its slug.
  * Public communities are accessible to anyone.
  * Community-visible communities require membership.
