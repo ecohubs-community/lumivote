@@ -1,6 +1,8 @@
 import { betterAuth } from 'better-auth/minimal';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { sveltekitCookies } from 'better-auth/svelte-kit';
+import { siwe } from 'better-auth/plugins/siwe';
+import { verifyMessage } from 'viem';
 import { env } from '$env/dynamic/private';
 import { getRequestEvent } from '$app/server';
 import { db } from '$lib/server/db';
@@ -15,7 +17,8 @@ export const auth = betterAuth({
 			user: authSchema.user,
 			session: authSchema.session,
 			account: authSchema.account,
-			verification: authSchema.verification
+			verification: authSchema.verification,
+			walletAddress: authSchema.walletAddressTable
 		}
 	}),
 	emailAndPassword: { enabled: true },
@@ -38,5 +41,21 @@ export const auth = betterAuth({
 			}
 		}
 	},
-	plugins: [sveltekitCookies(getRequestEvent)] // make sure this is the last plugin in the array
+	plugins: [
+		siwe({
+			domain: new URL(env.ORIGIN).hostname,
+			anonymous: true,
+			async getNonce() {
+				return crypto.randomUUID();
+			},
+			async verifyMessage({ message, signature, address }) {
+				return verifyMessage({
+					message,
+					signature: signature as `0x${string}`,
+					address: address as `0x${string}`
+				});
+			}
+		}),
+		sveltekitCookies(getRequestEvent) // must remain last
+	]
 });

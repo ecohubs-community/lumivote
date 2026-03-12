@@ -4,7 +4,7 @@
  * Creates an in-memory SQLite database with the full schema applied,
  * and provides helpers for seeding test data.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import BetterSqlite3 from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
@@ -15,23 +15,30 @@ export type TestDb = ReturnType<typeof createTestDb>;
 /**
  * Create a fresh in-memory SQLite database with the full schema.
  * Each test suite gets its own isolated database.
+ *
+ * Reads ALL migration files from `drizzle/` in sorted order so that
+ * new tables (e.g. wallet_address from Step 5) are automatically included.
  */
 export function createTestDb() {
 	const sqlite = new BetterSqlite3(':memory:');
 	sqlite.pragma('foreign_keys = ON');
 
-	// Read and execute migration SQL
-	const migrationPath = resolve('drizzle/0000_clever_starfox.sql');
-	const migrationSql = readFileSync(migrationPath, 'utf-8');
+	// Read and execute all migration SQL files in order
+	const migrationDir = resolve('drizzle');
+	const sqlFiles = readdirSync(migrationDir)
+		.filter((f) => f.endsWith('.sql'))
+		.sort();
 
-	// Split on statement breakpoints and execute each statement
-	const statements = migrationSql
-		.split('--> statement-breakpoint')
-		.map((s) => s.trim())
-		.filter(Boolean);
+	for (const file of sqlFiles) {
+		const migrationSql = readFileSync(resolve(migrationDir, file), 'utf-8');
+		const statements = migrationSql
+			.split('--> statement-breakpoint')
+			.map((s) => s.trim())
+			.filter(Boolean);
 
-	for (const stmt of statements) {
-		sqlite.exec(stmt);
+		for (const stmt of statements) {
+			sqlite.exec(stmt);
+		}
 	}
 
 	return drizzle(sqlite, { schema });

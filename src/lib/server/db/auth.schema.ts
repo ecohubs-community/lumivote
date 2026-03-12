@@ -83,9 +83,28 @@ export const verification = sqliteTable(
 	(table) => [index('verification_identifier_idx').on(table.identifier)]
 );
 
+// SIWE plugin table — stores wallet addresses linked to users (multi-wallet, multi-chain)
+export const walletAddressTable = sqliteTable(
+	'wallet_address',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		address: text('address').notNull(),
+		chainId: integer('chain_id').notNull(),
+		isPrimary: integer('is_primary', { mode: 'boolean' }).default(false).notNull(),
+		createdAt: integer('created_at', { mode: 'timestamp_ms' })
+			.default(timestampDefault)
+			.notNull()
+	},
+	(table) => [index('wallet_address_userId_idx').on(table.userId)]
+);
+
 export const userRelations = relations(user, ({ many }) => ({
 	sessions: many(session),
-	accounts: many(account)
+	accounts: many(account),
+	walletAddresses: many(walletAddressTable)
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -98,6 +117,13 @@ export const sessionRelations = relations(session, ({ one }) => ({
 export const accountRelations = relations(account, ({ one }) => ({
 	user: one(user, {
 		fields: [account.userId],
+		references: [user.id]
+	})
+}));
+
+export const walletAddressRelations = relations(walletAddressTable, ({ one }) => ({
+	user: one(user, {
+		fields: [walletAddressTable.userId],
 		references: [user.id]
 	})
 }));
