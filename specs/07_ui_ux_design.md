@@ -390,6 +390,54 @@ plugins
 
 ---
 
+# 13.1 Invite Members Flow
+
+Admins can generate invite links to bring new members into a community.
+
+## Admin: Generate Invite Link
+
+On the community page, admins see an **Invite Members** button below the header.
+
+Clicking it reveals an inline form:
+
+```
+Max uses (optional number — blank = unlimited)
+Expires at (datetime — defaults to 7 days from now)
+
+[Generate Link]
+```
+
+After generating, the invite URL is displayed in a read-only input with a **Copy** button:
+
+```
+https://example.com/join/abc123...    [Copy]
+```
+
+The admin can generate multiple links with different settings.
+
+## User: Redeem Invite Link
+
+Visiting `/join/[token]` shows a centered card with:
+
+```
+Join [Community Name]
+[community description]
+
+[Join Community] button
+```
+
+States:
+
+- **Not logged in** — shows "Sign In" and "Register" buttons (both redirect back to invite page after auth)
+- **Logged in, not a member** — shows "Join [Community Name]" button (form POST)
+- **Already a member** — shows "You're already a member" message with link to community
+- **Expired invite** — shows "This invite link has expired" error
+- **Exhausted invite** — shows "This invite link has reached its usage limit" error
+
+After successful join, the user is redirected to the community page.
+
+---
+
 # 14. Profile Page
 
 Users can view their participation.

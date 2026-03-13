@@ -260,6 +260,45 @@ export async function listMembers(
 	};
 }
 
+// ─── Invite lookup ───────────────────────────────────────────────────────────
+
+/**
+ * Look up an invite by its token, including community info.
+ * Used by the join page to display community details before redemption.
+ */
+export async function getInviteByToken(token: string, db: Database = defaultDb) {
+	const [found] = await db
+		.select({
+			invite: invite,
+			communityName: community.name,
+			communitySlug: community.slug,
+			communityDescription: community.description
+		})
+		.from(invite)
+		.innerJoin(community, eq(invite.communityId, community.id))
+		.where(eq(invite.token, token))
+		.limit(1);
+
+	if (!found) {
+		throw new ServiceError(ErrorCode.NOT_FOUND, 'Invite not found');
+	}
+
+	const inv = found.invite;
+	const expired = inv.expiresAt.getTime() <= Date.now();
+	const exhausted = inv.maxUses !== null && inv.uses >= inv.maxUses;
+
+	return {
+		invite: inv,
+		community: {
+			name: found.communityName,
+			slug: found.communitySlug,
+			description: found.communityDescription
+		},
+		expired,
+		exhausted
+	};
+}
+
 // ─── Invites ─────────────────────────────────────────────────────────────────
 
 /**

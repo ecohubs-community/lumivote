@@ -1,8 +1,8 @@
-import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import { error, fail, redirect } from '@sveltejs/kit';
+import type { PageServerLoad, Actions } from './$types';
 import { getCommunityBySlug } from '$lib/server/services/community-service';
 import { listProposals, type ProposalFilters } from '$lib/server/services/proposal-service';
-import { getMember } from '$lib/server/services/membership-service';
+import { getMember, createInvite } from '$lib/server/services/membership-service';
 import { ServiceError } from '$lib/server/services/errors';
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
@@ -36,5 +36,38 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			error(e.statusCode, e.message);
 		}
 		throw e;
+	}
+};
+
+export const actions: Actions = {
+	invite: async ({ request, locals, params, url }) => {
+		if (!locals.user) {
+			redirect(302, '/login');
+		}
+
+		const formData = await request.formData();
+		const maxUsesStr = formData.get('maxUses') as string;
+		const expiresAt = formData.get('expiresAt') as string;
+
+		if (!expiresAt) {
+			return fail(400, { inviteError: 'Expiration date is required' });
+		}
+
+		try {
+			const community = await getCommunityBySlug(params.slug, locals.user.id);
+
+			const invite = await createInvite(locals.user.id, community.id, {
+				maxUses: maxUsesStr ? parseInt(maxUsesStr, 10) || undefined : undefined,
+				expiresAt
+			});
+
+			const inviteUrl = `${url.origin}/join/${invite.token}`;
+			return { inviteUrl };
+		} catch (e) {
+			if (e instanceof ServiceError) {
+				return fail(e.statusCode, { inviteError: e.message });
+			}
+			throw e;
+		}
 	}
 };
