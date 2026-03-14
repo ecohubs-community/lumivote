@@ -2,6 +2,12 @@ import type { Handle } from '@sveltejs/kit';
 import { building } from '$app/environment';
 import { auth } from '$lib/server/auth';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
+import { initPlugins } from '$lib/server/plugins';
+
+// Initialize plugins once at server startup (not during build)
+if (!building) {
+	initPlugins();
+}
 
 const handleBetterAuth: Handle = async ({ event, resolve }) => {
 	const session = await auth.api.getSession({ headers: event.request.headers });

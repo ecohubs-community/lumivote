@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
 
+	let { data } = $props();
+	let redirectTo = $derived(data.redirectTo);
+
 	let name = $state('');
 	let email = $state('');
 	let password = $state('');
@@ -28,7 +31,7 @@
 			if (result.error) {
 				error = result.error.message ?? 'Registration failed. Please try again.';
 			} else {
-				window.location.href = '/';
+				window.location.href = redirectTo;
 			}
 		} catch (err) {
 			error = 'An unexpected error occurred. Please try again.';
@@ -107,6 +110,6 @@
 
 	<p class="mt-6 text-center text-sm text-gray-500">
 		Already have an account?
-		<a href="/login" class="font-medium text-blue-600 hover:text-blue-500">Sign in</a>
+		<a href="/login{redirectTo !== '/' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}" class="font-medium text-blue-600 hover:text-blue-500">Sign in</a>
 	</p>
 </div>

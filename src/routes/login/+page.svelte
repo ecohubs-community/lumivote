@@ -1,16 +1,15 @@
 <script lang="ts">
 	import { authClient } from '$lib/auth-client';
 
+	let { data } = $props();
+	let redirectTo = $derived(data.redirectTo);
+
 	let email = $state('');
 	let password = $state('');
 	let error = $state('');
 	let loading = $state(false);
 	let walletLoading = $state(false);
-	let hasWallet = $state(false);
-
-	$effect(() => {
-		hasWallet = typeof window !== 'undefined' && !!window.ethereum;
-	});
+	let hasWallet = $derived(typeof window !== 'undefined' && !!window.ethereum);
 
 	const handleEmailLogin = async (e: SubmitEvent) => {
 		e.preventDefault();
@@ -23,7 +22,7 @@
 			if (result.error) {
 				error = result.error.message ?? 'Sign in failed. Please check your credentials.';
 			} else {
-				window.location.href = '/';
+				window.location.href = redirectTo;
 			}
 		} catch (err) {
 			error = 'An unexpected error occurred. Please try again.';
@@ -108,7 +107,7 @@
 			if (verifyResult.error) {
 				error = verifyResult.error.message ?? 'Wallet verification failed.';
 			} else {
-				window.location.href = '/';
+				window.location.href = redirectTo;
 			}
 		} catch (err: unknown) {
 			if (err && typeof err === 'object' && 'code' in err && (err as { code: number }).code === 4001) {
@@ -208,6 +207,6 @@
 
 	<p class="mt-6 text-center text-sm text-gray-500">
 		Don't have an account?
-		<a href="/register" class="font-medium text-blue-600 hover:text-blue-500">Register</a>
+		<a href="/register{redirectTo !== '/' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}" class="font-medium text-blue-600 hover:text-blue-500">Register</a>
 	</p>
 </div>

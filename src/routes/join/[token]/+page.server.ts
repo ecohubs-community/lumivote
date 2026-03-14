@@ -11,6 +11,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 		const alreadyMember = userId ? !!(await getMember(invite.communityId, userId)) : false;
 
+		// Auto-redeem: if logged in, not a member, and invite is valid — join immediately
+		if (userId && !alreadyMember && !expired && !exhausted) {
+			await redeemInvite(userId, params.token);
+			redirect(303, `/communities/${community.slug}`);
+		}
+
 		return {
 			community,
 			expired,
