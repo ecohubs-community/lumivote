@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import ProposalCard from '$lib/components/ProposalCard.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -38,16 +39,16 @@
 
 <!-- Header -->
 <section class="border-b border-gray-200 pb-6">
-	<div class="flex items-start justify-between gap-4">
+	<div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 		<div>
-			<h1 class="text-3xl font-bold text-gray-900">{data.community.name}</h1>
+			<h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">{data.community.name}</h1>
 			{#if data.community.description}
 				<p class="mt-2 text-gray-600">{data.community.description}</p>
 			{/if}
 		</div>
 
-		<div class="flex items-center gap-3">
-			{#if data.membership}
+		{#if data.membership}
+			<div class="flex flex-wrap items-center gap-2 sm:shrink-0 sm:gap-3">
 				<span class="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
 					{data.membership.role === 'admin' ? 'Admin' : 'Member'}
 				</span>
@@ -65,8 +66,8 @@
 				>
 					Create Proposal
 				</a>
-			{/if}
-		</div>
+			</div>
+		{/if}
 	</div>
 </section>
 
@@ -107,7 +108,7 @@
 			method="POST"
 			action="?/invite"
 			use:enhance
-			class="mt-3 flex flex-wrap items-end gap-4"
+			class="mt-3 grid grid-cols-1 items-end gap-3 sm:flex sm:flex-wrap sm:gap-4"
 		>
 			<div>
 				<label for="maxUses" class="block text-xs font-medium text-gray-600">
@@ -120,7 +121,7 @@
 					name="maxUses"
 					min="1"
 					placeholder="Unlimited"
-					class="mt-1 block w-28 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none sm:w-28"
 				/>
 			</div>
 
@@ -132,13 +133,13 @@
 					name="expiresAt"
 					required
 					value={defaultExpiry}
-					class="mt-1 block rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
 				/>
 			</div>
 
 			<button
 				type="submit"
-				class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+				class="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 sm:w-auto"
 			>
 				Generate Link
 			</button>
@@ -147,18 +148,20 @@
 {/if}
 
 <!-- Status filter tabs -->
-<div class="mt-6 flex gap-2">
-	{#each statuses as { label, value }}
-		{@const isActive = data.statusFilter === value}
-		<a
-			href="/communities/{data.community.slug}{value ? `?status=${value}` : ''}"
-			class="rounded-md px-3 py-1.5 text-sm font-medium {isActive
-				? 'bg-blue-600 text-white'
-				: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
-		>
-			{label}
-		</a>
-	{/each}
+<div class="-mx-4 mt-6 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+	<div class="flex gap-2">
+		{#each statuses as { label, value }}
+			{@const isActive = data.statusFilter === value}
+			<a
+				href="/communities/{data.community.slug}{value ? `?status=${value}` : ''}"
+				class="shrink-0 rounded-md px-3 py-1.5 text-sm font-medium {isActive
+					? 'bg-blue-600 text-white'
+					: 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+			>
+				{label}
+			</a>
+		{/each}
+	</div>
 </div>
 
 <!-- Proposals list -->
@@ -172,7 +175,8 @@
 						title: proposal.title,
 						status: proposal.status,
 						startTime: proposal.startTime,
-						endTime: proposal.endTime
+						endTime: proposal.endTime,
+						body: proposal.body ?? undefined
 					}}
 				/>
 			{/each}
@@ -190,16 +194,11 @@
 			</div>
 		{/if}
 	{:else}
-		<div class="py-12 text-center">
-			<p class="text-gray-500">No proposals yet.</p>
-			{#if data.membership}
-				<a
-					href="/communities/{data.community.slug}/create-proposal"
-					class="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-800"
-				>
-					Create the first proposal
-				</a>
-			{/if}
-		</div>
+		<EmptyState
+			icon="proposals"
+			message="No proposals yet."
+			actionText={data.membership ? 'Create the first proposal' : undefined}
+			actionHref={data.membership ? `/communities/${data.community.slug}/create-proposal` : undefined}
+		/>
 	{/if}
 </section>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CommunityCard from '$lib/components/CommunityCard.svelte';
+	import EmptyState from '$lib/components/EmptyState.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -10,8 +11,8 @@
 </svelte:head>
 
 <!-- Hero -->
-<section class="py-12 text-center">
-	<h1 class="text-4xl font-bold tracking-tight text-gray-900">
+<section class="py-14 text-center">
+	<h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
 		Community Governance, Simplified
 	</h1>
 	<p class="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
@@ -22,7 +23,7 @@
 		{#if data.user}
 			<a
 				href="/communities/create"
-				class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+				class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
 			>
 				Create Community
 			</a>
@@ -35,7 +36,7 @@
 		{:else}
 			<a
 				href="/register"
-				class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+				class="rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
 			>
 				Get Started
 			</a>
@@ -51,7 +52,7 @@
 
 <!-- My Communities (logged in only) -->
 {#if data.user && data.myCommunities}
-	<section class="mt-12">
+	<section class="mt-10">
 		<div class="flex items-center justify-between">
 			<h2 class="text-2xl font-bold text-gray-900">My Communities</h2>
 			<a
@@ -62,7 +63,7 @@
 			</a>
 		</div>
 		{#if data.myCommunities.items.length > 0}
-			<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+			<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 				{#each data.myCommunities.items as { community }}
 					<CommunityCard
 						community={{
@@ -77,31 +78,40 @@
 				{/each}
 			</div>
 		{:else}
-			<p class="mt-4 text-sm text-gray-500">
-				You haven't joined any communities yet.
-				<a href="/communities/create" class="font-medium text-blue-600 hover:text-blue-800">Create your first one</a>.
-			</p>
+			<EmptyState
+				icon="communities"
+				message="You haven't joined any communities yet."
+				actionText="Create your first one"
+				actionHref="/communities/create"
+			/>
 		{/if}
 	</section>
 {/if}
 
 <!-- New Communities -->
-{#if data.newest.length > 0}
-	<section id="communities" class="mt-12">
-		<h2 class="text-2xl font-bold text-gray-900">New Communities</h2>
-		<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+<section id="communities" class="mt-12">
+	<h2 class="text-2xl font-bold text-gray-900">New Communities</h2>
+	{#if data.newest.length > 0}
+		<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each data.newest as community}
 				<CommunityCard {community} />
 			{/each}
 		</div>
-	</section>
-{/if}
+	{:else}
+		<EmptyState
+			icon="communities"
+			message="No communities have been created yet. Be the first!"
+			actionText={data.user ? 'Create a community' : undefined}
+			actionHref={data.user ? '/communities/create' : undefined}
+		/>
+	{/if}
+</section>
 
 <!-- Most Active -->
 {#if data.mostActive.length > 0}
-	<section class="mt-12 pb-12">
+	<section class="mt-12 pb-8">
 		<h2 class="text-2xl font-bold text-gray-900">Most Active</h2>
-		<div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+		<div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 			{#each data.mostActive as community}
 				<CommunityCard {community} />
 			{/each}

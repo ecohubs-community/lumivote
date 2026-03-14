@@ -27,7 +27,7 @@
 		return 'can-vote' as const;
 	});
 
-	const maxVotes = $derived(Math.max(...data.results.results.map((r) => r.votes), 1));
+
 </script>
 
 <svelte:head>
@@ -66,8 +66,10 @@
 	<div class="mt-2 whitespace-pre-wrap text-gray-700">{data.proposal.body}</div>
 </section>
 
+<hr class="my-8 border-gray-200" />
+
 <!-- Choices / Voting -->
-<section class="mt-8">
+<section>
 	<h2 class="text-lg font-semibold text-gray-900">Choices</h2>
 
 	{#if form?.error}
@@ -120,9 +122,17 @@
 			<button
 				type="submit"
 				disabled={!selectedChoiceId || submitting}
-				class="mt-4 rounded-md bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+				class="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				{submitting ? 'Submitting...' : 'Submit Vote'}
+				{#if submitting}
+					<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+					</svg>
+					Submitting…
+				{:else}
+					Submit Vote
+				{/if}
 			</button>
 		</form>
 	{:else if votingState === 'already-voted'}
@@ -201,7 +211,9 @@
 
 <!-- Results -->
 {#if data.proposal.status === 'active' || data.proposal.status === 'closed'}
-	<section class="mt-8 pb-8">
+	<hr class="my-8 border-gray-200" />
+
+	<section class="pb-8">
 		<h2 class="text-lg font-semibold text-gray-900">
 			Results
 			<span class="ml-2 text-sm font-normal text-gray-500">
@@ -212,18 +224,26 @@
 		{#if data.results.totalVotes === 0}
 			<p class="mt-3 text-sm text-gray-500">No votes yet.</p>
 		{:else}
-			<div class="mt-4 space-y-3">
+			<div class="mt-4 space-y-4">
 				{#each data.results.results as result}
 					{@const pct = data.results.totalVotes > 0
 						? Math.round((result.votes / data.results.totalVotes) * 100)
 						: 0}
+					{@const isWinner = pct === Math.max(...data.results.results.map((r) => Math.round((r.votes / data.results.totalVotes) * 100))) && pct > 0}
 					<div>
 						<div class="flex items-center justify-between text-sm">
-							<span class="font-medium text-gray-700">{result.label}</span>
-							<span class="text-gray-500">{result.votes} ({pct}%)</span>
+							<span class="font-medium {isWinner ? 'text-gray-900' : 'text-gray-700'}">
+								{result.label}
+							</span>
+							<span class="{isWinner ? 'font-medium text-gray-900' : 'text-gray-500'}">
+								{result.votes} ({pct}%)
+							</span>
 						</div>
-						<div class="mt-1 h-2.5 w-full rounded-full bg-gray-100">
-							<div class="h-2.5 rounded-full bg-blue-500" style="width: {pct}%"></div>
+						<div class="mt-1.5 h-3 w-full overflow-hidden rounded-full bg-gray-100">
+							<div
+								class="h-3 rounded-full transition-all duration-500 ease-out {isWinner ? 'bg-blue-600' : 'bg-blue-300'}"
+								style="width: {pct}%"
+							></div>
 						</div>
 					</div>
 				{/each}
