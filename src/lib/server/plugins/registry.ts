@@ -2,6 +2,7 @@ import { subscribe } from '../events';
 import type { EventName, EventHandler } from '../events';
 import type { Plugin } from './types';
 import { votingAnalyticsPlugin } from './voting-analytics';
+import { executionHooksPlugin, webhookDeliveryPlugin } from './execution-hooks';
 
 // ─── Internal state ─────────────────────────────────────────────────────────
 
@@ -43,6 +44,8 @@ export function registerPlugin(plugin: Plugin): void {
  */
 export function initPlugins(): void {
 	registerPlugin(votingAnalyticsPlugin);
+	registerPlugin(executionHooksPlugin);
+	registerPlugin(webhookDeliveryPlugin);
 }
 
 /**
